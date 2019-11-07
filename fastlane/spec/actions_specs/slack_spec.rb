@@ -5,11 +5,6 @@ describe Fastlane do
         ENV['SLACK_URL'] = 'https://127.0.0.1'
       end
 
-      it "trims long messages to show the bottom of the messages" do
-        long_text = "a" * 10_000
-        expect(Fastlane::Actions::SlackAction.trim_message(long_text).length).to eq(7000)
-      end
-
       it "works so perfect, like Slack does" do
         channel = "#myChannel"
         message = "Custom Message"
@@ -18,7 +13,8 @@ describe Fastlane do
         Fastlane::Actions.lane_context[Fastlane::Actions::SharedValues::LANE_NAME] = lane_name
 
         require 'fastlane/actions/slack'
-        arguments = Fastlane::ConfigurationHelper.parse(Fastlane::Actions::SlackAction, {
+        arguments = Fastlane::ConfigurationHelper.parse(Fastlane::Actions::
+                SlackAction, {
           slack_url: 'https://127.0.0.1',
           message: message,
           success: false,
