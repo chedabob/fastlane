@@ -39,6 +39,7 @@ describe Fastlane do
             project_language: 'ruby',
             source_encoding: 'utf-8',
             sonar_login: 'sonar-login',
+            sonar_password: 'sonar-password',
             sonar_url: 'http://www.sonarqube.com',
             sonar_organization: 'org-key',
             branch_name: 'branch-name',
@@ -58,6 +59,7 @@ describe Fastlane do
                     -Dsonar.language=\"ruby\"
                     -Dsonar.sourceEncoding=\"utf-8\"
                     -Dsonar.login=\"sonar-login\"
+                    -Dsonar.password=\"sonar-password\"
                     -Dsonar.host.url=\"http://www.sonarqube.com\"
                     -Dsonar.organization=\"org-key\"
                     -Dsonar.branch.name=\"branch-name\"

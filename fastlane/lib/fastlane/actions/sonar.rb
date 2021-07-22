@@ -20,6 +20,7 @@ module Fastlane
         sonar_scanner_args << "-Dsonar.language=\"#{params[:project_language]}\"" if params[:project_language]
         sonar_scanner_args << "-Dsonar.sourceEncoding=\"#{params[:source_encoding]}\"" if params[:source_encoding]
         sonar_scanner_args << "-Dsonar.login=\"#{params[:sonar_login]}\"" if params[:sonar_login]
+        sonar_scanner_args << "-Dsonar.password=\"#{params[:sonar_password]}\"" if params[:sonar_password]
         sonar_scanner_args << "-Dsonar.host.url=\"#{params[:sonar_url]}\"" if params[:sonar_url]
         sonar_scanner_args << "-Dsonar.organization=\"#{params[:sonar_organization]}\"" if params[:sonar_organization]
         sonar_scanner_args << "-Dsonar.branch.name=\"#{params[:branch_name]}\"" if params[:branch_name]
@@ -100,7 +101,12 @@ module Fastlane
                                        optional: true),
           FastlaneCore::ConfigItem.new(key: :sonar_login,
                                        env_name: "FL_SONAR_LOGIN",
-                                       description: "Pass the Sonar Login token (e.g: xxxxxxprivate_token_XXXXbXX7e)",
+                                       description: "The authentication token or login of a SonarQube user with Execute Analysis permission on the project",
+                                       optional: true,
+                                       sensitive: true),
+          FastlaneCore::ConfigItem.new(key: :sonar_password,
+                                       env_name: "FL_SONAR_PASSWORD",
+                                       description: "If you're using an authentication token, leave this blank. If you're using a login, this is the password that goes with your sonar.login username",
                                        optional: true,
                                        sensitive: true),
           FastlaneCore::ConfigItem.new(key: :sonar_url,
