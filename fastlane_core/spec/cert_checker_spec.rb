@@ -73,24 +73,42 @@ describe FastlaneCore do
 
       it 'should download the WWDR certificate from correct URL' do
         allow(FastlaneCore::CertChecker).to receive(:wwdr_keychain).and_return('login.keychain')
+        expect(FastlaneCore::CertChecker).to receive(:import_cert).with(anything, 'login.keychain').exactly(6).times
 
-        expect(Open3).to receive(:capture3).with(include('https://developer.apple.com/certificationauthority/AppleWWDRCA.cer')).and_return(["", "", success_status])
+        expect(FastlaneCore::CertChecker).to receive(:download_cert).with('https://developer.apple.com/certificationauthority/AppleWWDRCA.cer', anything)
         FastlaneCore::CertChecker.install_wwdr_certificate('G1')
 
-        expect(Open3).to receive(:capture3).with(include('https://www.apple.com/certificateauthority/AppleWWDRCAG2.cer')).and_return(["", "", success_status])
+        expect(FastlaneCore::CertChecker).to receive(:download_cert).with('https://www.apple.com/certificateauthority/AppleWWDRCAG2.cer', anything)
         FastlaneCore::CertChecker.install_wwdr_certificate('G2')
 
-        expect(Open3).to receive(:capture3).with(include('https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer')).and_return(["", "", success_status])
+        expect(FastlaneCore::CertChecker).to receive(:download_cert).with('https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer', anything)
         FastlaneCore::CertChecker.install_wwdr_certificate('G3')
 
-        expect(Open3).to receive(:capture3).with(include('https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer')).and_return(["", "", success_status])
+        expect(FastlaneCore::CertChecker).to receive(:download_cert).with('https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer', anything)
         FastlaneCore::CertChecker.install_wwdr_certificate('G4')
 
-        expect(Open3).to receive(:capture3).with(include('https://www.apple.com/certificateauthority/AppleWWDRCAG5.cer')).and_return(["", "", success_status])
+        expect(FastlaneCore::CertChecker).to receive(:download_cert).with('https://www.apple.com/certificateauthority/AppleWWDRCAG5.cer', anything)
         FastlaneCore::CertChecker.install_wwdr_certificate('G5')
 
-        expect(Open3).to receive(:capture3).with(include('https://www.apple.com/certificateauthority/AppleWWDRCAG6.cer')).and_return(["", "", success_status])
+        expect(FastlaneCore::CertChecker).to receive(:download_cert).with('https://www.apple.com/certificateauthority/AppleWWDRCAG6.cer', anything)
         FastlaneCore::CertChecker.install_wwdr_certificate('G6')
+      end
+
+      it 'Should make a network request for the url and write it to a file' do
+        url = "https://www.apple.com/certificateauthority/AppleWWDRCAG6.cer"
+        path = "test.cer"
+        dummy_data = "12345"
+
+        stub_request(:get, url).
+          to_return(status: 200, body: dummy_data, headers: {})
+
+
+        file = StringIO::new
+        expect(File).to receive(:open).with(path, "wb").and_yield(file)
+        expect(file).to receive(:write).with(dummy_data)
+
+        FastlaneCore::CertChecker.download_cert(url, path)
+        expect(WebMock).to have_requested(:get, url)
       end
     end
 
@@ -111,11 +129,12 @@ describe FastlaneCore do
         `ls`
 
         keychain = "keychain with spaces.keychain"
-        cmd = %r{curl -f -o (([A-Z]\:)?\/.+) https://www\.apple\.com/certificateauthority/AppleWWDRCAG6\.cer && security import \1 -k #{Regexp.escape(keychain.shellescape)}}
+        cmd = %r{security import (([A-Z]\:)?\/.+) -k #{Regexp.escape(keychain.shellescape)}}
         require "open3"
 
         expect(Open3).to receive(:capture3).with(cmd).and_return(["", "", success_status])
         expect(FastlaneCore::CertChecker).to receive(:wwdr_keychain).and_return(keychain_name)
+        expect(FastlaneCore::CertChecker).to receive(:download_cert)
 
         allow(FastlaneCore::CertChecker).to receive(:installed_wwdr_certificates).and_return(['G1', 'G2', 'G3', 'G4', 'G5'])
         expect(FastlaneCore::CertChecker.install_missing_wwdr_certificates).to be(1)

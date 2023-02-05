@@ -151,13 +151,51 @@ module FastlaneCore
     def self.install_wwdr_certificate(cert_alias)
       url = WWDRCA_CERTIFICATES.find { |c| c[:alias] == cert_alias }.fetch(:url)
       file = Tempfile.new(File.basename(url))
-      filename = file.path
-      keychain = wwdr_keychain
-      keychain = "-k #{keychain.shellescape}" unless keychain.empty?
+      file_path = file.path
 
+      download_cert(url, file_path)
+      import_cert(file_path, wwdr_keychain)
+
+      return true
+    end
+
+    # Downloads a certificate and writes it to disk
+    # @param [String] url Url for the cert
+    # @param [String] out_path Path to write the cert to
+    def self.download_cert(url, out_path)
+      UI.verbose("Downloading WWDR cert #{url}")
+
+      require 'faraday'
+      conn = Faraday.new do |f|
+        f.response :follow_redirects
+        f.request :retry
+        f.adapter Faraday.default_adapter
+      end
+
+      response = conn.get url
+
+      unless response.status.between?(200, 299)
+        UI.user_error!("Could not download WWDR cert #{url}")
+      end
+
+      UI.verbose("Successfully downloaded WWDR cert #{url}")
+
+      File.open(out_path, "wb") do |file|
+        file.write(response.body)
+      end
+
+      UI.verbose("Wrote WWDR cert to disk #{out_path}")
+    end
+
+    # Imports a certificate into the specified keychain
+    # @param [String] cert_path Path to the certificate
+    # @param [String] keychain Name of the keychain to import the cert into
+    def self.import_cert(cert_path, keychain)
       require 'open3'
 
-      import_command = "curl -f -o #{filename} #{url} && security import #{filename} #{keychain}"
+      keychain = "-k #{keychain.shellescape}" unless keychain.empty?
+
+      import_command = "security import #{cert_path} #{keychain}"
       UI.verbose("Installing WWDR Cert: #{import_command}")
 
       stdout, stderr, status = Open3.capture3(import_command)
@@ -174,7 +212,6 @@ module FastlaneCore
         end
         UI.verbose("WWDR Certificate was already installed")
       end
-      return true
     end
 
     def self.wwdr_keychain
