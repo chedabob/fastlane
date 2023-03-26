@@ -29,7 +29,7 @@ describe FastlaneCore do
 
     describe '#installed_wwdr_certificates' do
       it "should return installed certificate's alias" do
-        expect(FastlaneCore::CertChecker).to receive(:wwdr_keychain).and_return('login.keychain')
+        expect(FastlaneCore::CertChecker).to receive(:user_keychain).and_return('login.keychain')
 
         allow(FastlaneCore::Helper).to receive(:backticks).with(/security find-certificate/).and_return("-----BEGIN CERTIFICATE-----\nG6\n-----END CERTIFICATE-----\n")
 
@@ -41,7 +41,7 @@ describe FastlaneCore do
       end
 
       it "should return an empty array if unknown WWDR certificates are found" do
-        expect(FastlaneCore::CertChecker).to receive(:wwdr_keychain).and_return('login.keychain')
+        expect(FastlaneCore::CertChecker).to receive(:user_keychain).and_return('login.keychain')
 
         allow(FastlaneCore::Helper).to receive(:backticks).with(/security find-certificate/).and_return("-----BEGIN CERTIFICATE-----\nG6\n-----END CERTIFICATE-----\n")
 
@@ -72,7 +72,7 @@ describe FastlaneCore do
       end
 
       it 'should download the WWDR certificate from correct URL' do
-        allow(FastlaneCore::CertChecker).to receive(:wwdr_keychain).and_return('login.keychain')
+        allow(FastlaneCore::CertChecker).to receive(:user_keychain).and_return('login.keychain')
 
         expect(Open3).to receive(:capture3).with(include('https://developer.apple.com/certificationauthority/AppleWWDRCA.cer')).and_return(["", "", success_status])
         FastlaneCore::CertChecker.install_wwdr_certificate('G1')
@@ -100,7 +100,7 @@ describe FastlaneCore do
       let(:name_regex) { Regexp.new(Regexp.escape(shell_escaped_name)) }
 
       it 'should shell escape keychain names when checking for installation' do
-        expect(FastlaneCore::CertChecker).to receive(:wwdr_keychain).and_return(keychain_name)
+        expect(FastlaneCore::CertChecker).to receive(:user_keychain).and_return(keychain_name)
         expect(FastlaneCore::Helper).to receive(:backticks).with(name_regex).and_return("")
 
         FastlaneCore::CertChecker.installed_wwdr_certificates
@@ -116,7 +116,7 @@ describe FastlaneCore do
           require "open3"
 
           expect(Open3).to receive(:capture3).with(cmd).and_return(["", "", success_status])
-          expect(FastlaneCore::CertChecker).to receive(:wwdr_keychain).and_return(keychain_name)
+          expect(FastlaneCore::CertChecker).to receive(:user_keychain).and_return(keychain_name)
 
           allow(FastlaneCore::CertChecker).to receive(:installed_wwdr_certificates).and_return(['G1', 'G2', 'G3', 'G4', 'G5'])
           expect(FastlaneCore::CertChecker.install_missing_wwdr_certificates).to be(1)
@@ -133,7 +133,7 @@ describe FastlaneCore do
           require "open3"
 
           expect(Open3).to receive(:capture3).with(cmd).and_return(["", "", success_status])
-          expect(FastlaneCore::CertChecker).to receive(:wwdr_keychain).and_return(keychain_name)
+          expect(FastlaneCore::CertChecker).to receive(:user_keychain).and_return(keychain_name)
 
           allow(FastlaneCore::CertChecker).to receive(:installed_wwdr_certificates).and_return(['G1', 'G2', 'G3', 'G4', 'G5'])
           expect(FastlaneCore::CertChecker.install_missing_wwdr_certificates).to be(1)

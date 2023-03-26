@@ -116,12 +116,12 @@ module FastlaneCore
       `#{commands.join(' ')}`
     end
 
-    def self.installed_wwdr_certificates
+    def self.installed_wwdr_certificates(keychain_path)
       certificate_name = "Apple Worldwide Developer Relations"
 
       # Find all installed WWDRCA certificates
       installed_certs = []
-      Helper.backticks("security find-certificate -a -c '#{certificate_name}' -p #{wwdr_keychain.shellescape}")
+      Helper.backticks("security find-certificate -a -c '#{certificate_name}' -p #{keychain_path.shellescape}")
             .lines
             .each do |line|
         if line.start_with?('-----BEGIN CERTIFICATE-----')
@@ -142,18 +142,40 @@ module FastlaneCore
 
     def self.install_missing_wwdr_certificates
       # Install all Worldwide Developer Relations Intermediate Certificates listed here: https://www.apple.com/certificateauthority/
-      missing = WWDRCA_CERTIFICATES.map { |c| c[:alias] } - installed_wwdr_certificates
+      system_keychain_path = system_keychain
+      UI.error("No System keychain found") if system_keychain.nil?
+      system_installed = installed_wwdr_certificates(system_keychain_path)
+
+      missing = WWDRCA_CERTIFICATES.map { |c| c[:alias] } - system_installed
+      puts missing
+      if missing.empty?
+        UI.verbose("All WWDR certs already installed in System keychain")
+        return
+      end
+
+      user_keychain_path = user_keychain
+      UI.error("No User keychain found. Cannot install missing WWDR certs without one") if user_keychain_path.nil?
+      user_installed = installed_wwdr_certificates(user_keychain_path)
+      missing = WWDRCA_CERTIFICATES.map { |c| c[:alias] } - user_installed
+
+      if missing.empty?
+        UI.verbose("All WWDR certs already installed in System or User keychain")
+        return
+      end
+
+      UI.verbose("Installing #{missing.count} missing WWDR certs into User keychain")
+
       missing.each do |cert_alias|
-        install_wwdr_certificate(cert_alias)
+        install_wwdr_certificate(cert_alias, user_keychain_path)
       end
       missing.count
     end
 
-    def self.install_wwdr_certificate(cert_alias)
+    def self.install_wwdr_certificate(cert_alias, keychain_path)
       url = WWDRCA_CERTIFICATES.find { |c| c[:alias] == cert_alias }.fetch(:url)
       file = Tempfile.new(File.basename(url))
       filename = file.path
-      keychain = wwdr_keychain
+      keychain = keychain_path
       keychain = "-k #{keychain.shellescape}" unless keychain.empty?
 
       # Attempts to fix an issue installing WWDR cert tends to fail on CIs
@@ -184,7 +206,7 @@ module FastlaneCore
       return true
     end
 
-    def self.wwdr_keychain
+    def self.user_keychain
       priority = [
         "security default-keychain -d user",
         "security list-keychains -d user"
@@ -196,7 +218,16 @@ module FastlaneCore
           return keychains[0].strip.tr('"', '')
         end
       end
-      return ""
+      return nil
+    end
+
+    def self.system_keychain
+      keychains = Helper.backticks("security list-keychains -d system", print: FastlaneCore::Globals.verbose?).split("\n")
+      unless keychains.empty?
+        # Select first keychain name from returned keychains list
+        return keychains[0].strip.tr('"', '')
+      end
+      return nil
     end
 
     def self.sha1_fingerprint(path)
